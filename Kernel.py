@@ -5,7 +5,6 @@ Created on Thu Mar  7 19:01:07 2019
 @author: Spikee
 """
 
-
 import pandas as pd
 import numpy as np
 
@@ -16,15 +15,19 @@ import matplotlib.pyplot as plt
 train = pd.read_csv("DataBase/train.csv", header='infer')
 test = pd.read_csv("DataBase/test.csv", header='infer')
 
+a = train.corr()['target'].sort_values(ascending=False)
+col = []
+sortedColNames = a.index.tolist()
+for i in range(1,14):
+    col.append(sortedColNames[i])
+    col.append(sortedColNames[len(sortedColNames)-i])
 
 
 # =============================================================================
 # Determing the Features and Labels
 # =============================================================================
 
-independent_cols =  ['ID_code','target']
-
-X_train = train.drop(independent_cols, axis=1)
+X_train = train[col]
 y_train = train['target']
 
 #X_test= test.drop('ID_code', axis=1).copy()
