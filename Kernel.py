@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 from imblearn.over_sampling import SMOTE
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
+import keras
+from keras.models import Sequential
+from keras.layers import Dense
 
 train = pd.read_csv("DataBase/train.csv", header='infer')
 test = pd.read_csv("DataBase/test.csv", header='infer')
@@ -291,14 +294,55 @@ y_Pred += modelLgb.predict(X_train_sub, num_iteration=modelLgb.best_iteration)/5
 probabilityLogistic = modelLogistic.predict_proba(X_test)[::,1]
 
 
+
+# =============================================================================
+# ANN
+# =============================================================================
+# Initialising the ANN
+classifier = Sequential()
+
+# Adding the input layer and the first hidden layer
+classifier.add(Dense(output_dim = 201, init = 'uniform', activation = 'relu', input_dim = 200))
+
+# Adding the second hidden layer
+classifier.add(Dense(output_dim = 201, init = 'uniform', activation = 'relu'))
+
+# Adding the third hidden layer
+classifier.add(Dense(output_dim = 201, init = 'uniform', activation = 'relu'))
+
+# Adding the fourth hidden layer
+classifier.add(Dense(output_dim = 201, init = 'uniform', activation = 'relu'))
+
+# Adding the output layer
+classifier.add(Dense(output_dim = 1, init = 'uniform', activation = 'sigmoid'))
+
+# Compiling the ANN
+classifier.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
+
+# Fitting the ANN to the Training set
+classifier.fit(X_train, y_train, batch_size = 2000, nb_epoch = 50)
+
+# Part 3 - Making the predictions and evaluating the model
+
+# Predicting the Test set results
+y_pred = classifier.predict(X_train_sub)
+for index,i in enumerate(y_pred):
+    if i<0.5:
+        y_pred[index] = 0
+    else:
+        y_pred[index] = 1        
+        
+from sklearn.metrics import confusion_matrix
+cm = confusion_matrix(y_test, y_pred)
+
 # =============================================================================
 # Creating Submission file
 # =============================================================================
 submission = pd.DataFrame({
         "ID_code": test["ID_code"],
-        "target": (y_Pred + y_Pred_Cat)/2
+        "target": y_pred
     })
-submission.to_csv('DataBase/submission.csv', index=False)
+submission.to_csv('DataBase/submissionANN.csv', index=False)
 
 
 # =============================================================================
@@ -317,3 +361,5 @@ plt.show()
 cnf_matrixXGb = metrics.confusion_matrix(y_test, y_Pred)
 print("\n",cnf_matrixXGb)
 
+
+#91.325
