@@ -24,17 +24,6 @@ test = pd.read_csv("DataBase/test.csv", header='infer')
 # =============================================================================
 # Determing the Features and Labels
 # =============================================================================
-
-#a = train.corr()['target'].sort_values(ascending=False)
-#col = []
-#sortedColNames = a.index.tolist()
-#for i in range(1,20):
-#    col.append(sortedColNames[i])
-#    col.append(sortedColNames[len(sortedColNames)-i])
-#
-#X_train = train[col]
-#y_train = train['target']
-
 independent_cols =  ['ID_code','target']
 
 X_train = train.drop(independent_cols, axis=1)
@@ -111,30 +100,6 @@ print("After OverSampling, counts of label '0': {}".format(sum(y_train_res==0)))
 # Models for Prediction
 # =============================================================================
 
-#LOGISTIC REGRESSION
-from sklearn.linear_model import LogisticRegression
-modelLogistic = LogisticRegression()
-modelLogistic = modelLogistic.fit(X_train_res,y_train_res)
-
-print("Results For Logistic Regression")
-scoreLogistic=modelLogistic.score(X_test_res,y_test_res)
-print("\nScore", scoreLogistic*100)
-
-y_Pred = modelLogistic.predict(X_test)
-
-
-#DECISION TREE
-from sklearn.tree import DecisionTreeClassifier
-modelDecision = DecisionTreeClassifier(random_state = 0)
-modelDecision = modelDecision.fit(X_train_res, y_train_res)
-
-print("Results For Decision Tree")
-scoreDecision=modelDecision.score(X_test_res, y_test_res)
-print("\nScore", scoreDecision*100)
-
-y_Pred = modelDecision.predict(X_test)
-
-
 #RANDOM FOREST
 from sklearn.ensemble import RandomForestClassifier
 modelRandom = RandomForestClassifier(n_estimators=100, n_jobs=4, class_weight='balanced')
@@ -170,15 +135,6 @@ print("\nScore", scoreGaussianNB*100)
 
 y_Pred = modelGaussian.predict(X_train_sub)
 
-
-#MULTINOMIAL NAIVE BAYES
-from sklearn.naive_bayes import MultinomialNB
-modelMultinomialNB = MultinomialNB(alpha=1.0, class_prior=None, fit_prior=True)
-modelMultinomialNB = modelMultinomialNB.fit(X_train_res, y_train_res)
-print("Results For MultinomialNB")
-scoreMultinomialNB=modelMultinomialNB.score(X_test_res, y_test_res)
-print("\nScore", scoreMultinomialNB*100)
-y_Pred = modelMultinomialNB.predict(X_train_sub)
 
 #CatBoost...66.8%
 from catboost import CatBoostClassifier, Pool
@@ -307,21 +263,6 @@ folds= StratifiedKFold(n_splits=n_fold, shuffle=False, random_state=2319)
 oof=np.zeros(len(X_train))
 y_Pred = np.zeros(len(X_train_sub))
 
-#folds= StratifiedKFold(n_splits=n_fold, shuffle=True, random_state=42)
-
-#for fold_n, (train_index, valid_index) in enumerate(folds.split(X_train, y_train)):
-#    print('Fold', fold_n)
-#    
-#    X_training, X_validation = X_train.iloc[train_index], X_train.iloc[valid_index]
-#    y_training, y_validation = y_train.iloc[train_index], y_train.iloc[valid_index]
-#    
-#    training_data = lgb.Dataset(X_training, label=y_training)
-#    validation_data = lgb.Dataset(X_validation, label=y_validation)
-
-#modelLgb = lgb.train(params,training_data,num_boost_round=20000,
-#                    valid_sets = [training_data, validation_data],verbose_eval=300,early_stopping_rounds = 200)
-#
-#y_Pred += modelLgb.predict(X_train_sub, num_iteration=modelLgb.best_iteration)/5
 
 for fold_, (trn_idx, val_idx) in enumerate(folds.split(X_train, y_train)):
     print("Fold idx:{}".format(fold_ + 1))
@@ -334,11 +275,6 @@ for fold_, (trn_idx, val_idx) in enumerate(folds.split(X_train, y_train)):
     
 from sklearn.metrics import roc_auc_score
 print("CV score: {:<8.5f}".format(roc_auc_score(y_train, oof)))
-
-# =============================================================================
-# To Calculate Probability
-# =============================================================================
-probabilityLogistic = modelLogistic.predict_proba(X_test)[::,1]
 
 
 
@@ -385,6 +321,7 @@ from sklearn.metrics import confusion_matrix
 cm = confusion_matrix(y_test, y_pred)
 
 y_Pred=y_pred.reshape(200000,)
+
 # =============================================================================
 # Creating Submission file
 # =============================================================================
@@ -393,16 +330,6 @@ submission = pd.DataFrame({
         "target": y_Pred
     })
 submission.to_csv('DataBase/submissionLGB_9.csv', index=False)
-
-
-# =============================================================================
-# Plotting ROC Curve
-# =============================================================================
-
-print("ROC Curve for Logistic Regression")
-fpr, tpr, _ = metrics.roc_curve(y_test, probabilityLogistic)
-plt.plot(fpr, tpr)
-plt.show()
 
 # =============================================================================
 # Calculating the Confusion Matrix
