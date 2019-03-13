@@ -53,6 +53,18 @@ X_train=pd.DataFrame(X_scaled)
 X_scaled_sub = min_scaler.fit_transform(X_train_sub)
 X_train_sub=pd.DataFrame(X_scaled_sub)
 
+
+# =============================================================================
+# 
+# =============================================================================
+# Feature Scaling
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+X_scaled = sc.fit_transform(X_train)
+X_train=pd.DataFrame(X_scaled)
+
+X_scaled_sub = sc.transform(X_train_sub)
+X_train_sub=pd.DataFrame(X_scaled_sub)
 # =============================================================================
 # Feature Selection
 # =============================================================================
@@ -289,7 +301,7 @@ param1 = {
     'verbosity': 1}
 
 
-n_fold = 9
+n_fold = 15
 folds= StratifiedKFold(n_splits=n_fold, shuffle=False, random_state=2319)
 
 oof=np.zeros(len(X_train))
@@ -320,6 +332,7 @@ for fold_, (trn_idx, val_idx) in enumerate(folds.split(X_train, y_train)):
     oof[val_idx] = clf.predict(X_train.iloc[val_idx], num_iteration=clf.best_iteration)
     y_Pred += clf.predict(X_train_sub, num_iteration=clf.best_iteration) / folds.n_splits
     
+from sklearn.metrics import roc_auc_score
 print("CV score: {:<8.5f}".format(roc_auc_score(y_train, oof)))
 
 # =============================================================================
@@ -379,7 +392,7 @@ submission = pd.DataFrame({
         "ID_code": test["ID_code"],
         "target": y_Pred
     })
-submission.to_csv('DataBase/submissionLGB_15.csv', index=False)
+submission.to_csv('DataBase/submissionLGB_9.csv', index=False)
 
 
 # =============================================================================
