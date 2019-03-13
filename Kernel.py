@@ -150,7 +150,7 @@ y_Pred = modelXgb.predict(X_train_sub)
 #GAUSSIAN NAIVE BAYES
 from sklearn.naive_bayes import GaussianNB
 modelGaussian = GaussianNB(priors=None, var_smoothing=1e-09)
-modelGaussian = modelGaussian.fit(X_train_res, y_train_res)
+modelGaussian = modelGaussian.fit(X_train, y_train)
 
 print("Results For GaussianNB")
 scoreGaussianNB=modelGaussian.score(X_test_res, y_test_res)
@@ -219,6 +219,7 @@ print("\nScore", scoreCatBoost*100)
 y_Pred_Cat = modelCatBoost.predict(X_train_sub)
 
 
+#LightGBM
 import lightgbm as lgb
 from sklearn.model_selection import StratifiedKFold
 
@@ -270,24 +271,57 @@ param = {
         'is_unbalance': True,
         'boost_from_average': False}
 
-n_fold = 5
-folds= StratifiedKFold(n_splits=n_fold, shuffle=True, random_state=42)
+param1 = {
+    'bagging_freq': 5,
+    'bagging_fraction': 0.335,
+    'boost_from_average':'false',
+    'boost': 'gbdt',
+    'feature_fraction': 0.041,
+    'learning_rate': 0.0083,
+    'max_depth': -1,
+    'metric':'auc',
+    'min_data_in_leaf': 80,
+    'min_sum_hessian_in_leaf': 10.0,
+    'num_leaves': 13,
+    'num_threads': 8,
+    'tree_learner': 'serial',
+    'objective': 'binary',
+    'verbosity': 1}
 
+
+n_fold = 9
+folds= StratifiedKFold(n_splits=n_fold, shuffle=False, random_state=2319)
+
+oof=np.zeros(len(X_train))
 y_Pred = np.zeros(len(X_train_sub))
 
+#folds= StratifiedKFold(n_splits=n_fold, shuffle=True, random_state=42)
 
-for fold_n, (train_index, valid_index) in enumerate(folds.split(X_train, y_train)):
-    print('Fold', fold_n)
-    X_training, X_validation = X_train.iloc[train_index], X_train.iloc[valid_index]
-    y_training, y_validation = y_train.iloc[train_index], y_train.iloc[valid_index]
-    
-    training_data = lgb.Dataset(X_training, label=y_training)
-    validation_data = lgb.Dataset(X_validation, label=y_validation)
-    
-modelLgb = lgb.train(params,training_data,num_boost_round=20000,
-                    valid_sets = [training_data, validation_data],verbose_eval=300,early_stopping_rounds = 200)
+#for fold_n, (train_index, valid_index) in enumerate(folds.split(X_train, y_train)):
+#    print('Fold', fold_n)
+#    
+#    X_training, X_validation = X_train.iloc[train_index], X_train.iloc[valid_index]
+#    y_training, y_validation = y_train.iloc[train_index], y_train.iloc[valid_index]
+#    
+#    training_data = lgb.Dataset(X_training, label=y_training)
+#    validation_data = lgb.Dataset(X_validation, label=y_validation)
 
-y_Pred += modelLgb.predict(X_train_sub, num_iteration=modelLgb.best_iteration)/5
+#modelLgb = lgb.train(params,training_data,num_boost_round=20000,
+#                    valid_sets = [training_data, validation_data],verbose_eval=300,early_stopping_rounds = 200)
+#
+#y_Pred += modelLgb.predict(X_train_sub, num_iteration=modelLgb.best_iteration)/5
+
+for fold_, (trn_idx, val_idx) in enumerate(folds.split(X_train, y_train)):
+    print("Fold idx:{}".format(fold_ + 1))
+    trn_data = lgb.Dataset(X_train.iloc[trn_idx], label=y_train.iloc[trn_idx])
+    val_data = lgb.Dataset(X_train.iloc[val_idx], label=y_train.iloc[val_idx])
+    
+    clf = lgb.train(param1, trn_data, 1000000, valid_sets = [trn_data, val_data], verbose_eval=5000, early_stopping_rounds = 4000)
+    oof[val_idx] = clf.predict(X_train.iloc[val_idx], num_iteration=clf.best_iteration)
+    y_Pred += clf.predict(X_train_sub, num_iteration=clf.best_iteration) / folds.n_splits
+    
+print("CV score: {:<8.5f}".format(roc_auc_score(y_train, oof)))
+
 # =============================================================================
 # To Calculate Probability
 # =============================================================================
@@ -326,6 +360,8 @@ classifier.fit(X_train, y_train, batch_size = 2000, nb_epoch = 50)
 
 # Predicting the Test set results
 y_pred = classifier.predict(X_train_sub)
+
+
 for index,i in enumerate(y_pred):
     if i<0.5:
         y_pred[index] = 0
@@ -335,14 +371,15 @@ for index,i in enumerate(y_pred):
 from sklearn.metrics import confusion_matrix
 cm = confusion_matrix(y_test, y_pred)
 
+y_Pred=y_pred.reshape(200000,)
 # =============================================================================
 # Creating Submission file
 # =============================================================================
 submission = pd.DataFrame({
         "ID_code": test["ID_code"],
-        "target": y_pred
+        "target": y_Pred
     })
-submission.to_csv('DataBase/submissionANN.csv', index=False)
+submission.to_csv('DataBase/submissionLGB_15.csv', index=False)
 
 
 # =============================================================================
