@@ -44,9 +44,8 @@ X_train_sub=pd.DataFrame(X_scaled_sub)
 
 
 # =============================================================================
-# 
+# Standardizing the columns
 # =============================================================================
-# Feature Scaling
 from sklearn.preprocessing import StandardScaler
 sc = StandardScaler()
 X_scaled = sc.fit_transform(X_train)
@@ -89,6 +88,9 @@ print("Before OverSampling, counts of label '0': {} \n".format(sum(y_train==0)))
 sm = SMOTE(random_state=2)
 X_train_res, y_train_res = sm.fit_sample(X_train, y_train.ravel())
 X_test_res, y_test_res = sm.fit_sample(X_test, y_test.ravel())
+
+X_train=pd.DataFrame(X_train_res)
+y_train=pd.DataFrame(y_train_res)
 
 print('After OverSampling, the shape of train_X: {}'.format(X_train_res.shape))
 print('After OverSampling, the shape of train_y: {} \n'.format(y_train_res.shape))
@@ -257,7 +259,7 @@ param1 = {
     'verbosity': 1}
 
 
-n_fold = 15
+n_fold = 10
 folds= StratifiedKFold(n_splits=n_fold, shuffle=False, random_state=2319)
 
 oof=np.zeros(len(X_train))
@@ -269,7 +271,7 @@ for fold_, (trn_idx, val_idx) in enumerate(folds.split(X_train, y_train)):
     trn_data = lgb.Dataset(X_train.iloc[trn_idx], label=y_train.iloc[trn_idx])
     val_data = lgb.Dataset(X_train.iloc[val_idx], label=y_train.iloc[val_idx])
     
-    clf = lgb.train(param1, trn_data, 1000000, valid_sets = [trn_data, val_data], verbose_eval=5000, early_stopping_rounds = 4000)
+    clf = lgb.train(param, trn_data, 1000000, valid_sets = [trn_data, val_data], verbose_eval=5000, early_stopping_rounds = 4000)
     oof[val_idx] = clf.predict(X_train.iloc[val_idx], num_iteration=clf.best_iteration)
     y_Pred += clf.predict(X_train_sub, num_iteration=clf.best_iteration) / folds.n_splits
     
